@@ -1,82 +1,436 @@
 import React, { useState, useEffect } from "react";
 
+// Logo component
+const Logo = ({ className = "w-12 h-12" }) => (
+  <div className={`${className} relative`}>
+    <svg viewBox="0 0 100 100" className="w-full h-full">
+      <path
+        d="M20 35 C15 25, 35 15, 50 20 C65 15, 85 25, 80 35 C85 45, 85 55, 80 65 C75 75, 65 80, 50 75 C35 80, 25 75, 20 65 C15 55, 15 45, 20 35 Z"
+        fill="none"
+        stroke="#4FC3F7"
+        strokeWidth="4"
+      />
+      <path
+        d="M30 40 C35 35, 45 40, 50 35 C55 40, 65 35, 70 40"
+        fill="none"
+        stroke="#4FC3F7"
+        strokeWidth="2"
+      />
+      <path
+        d="M25 50 C30 45, 40 50, 50 45 C60 50, 70 45, 75 50"
+        fill="none"
+        stroke="#4FC3F7"
+        strokeWidth="2"
+      />
+      <rect x="42" y="35" width="16" height="6" fill="#FF5252" rx="1" />
+      <rect x="47" y="30" width="6" height="16" fill="#FF5252" rx="1" />
+      <rect x="47" y="70" width="6" height="15" fill="#4FC3F7" rx="3" />
+    </svg>
+  </div>
+);
+
+// Login Component
+const Login = ({ onLogin, onSwitchToRegister, error, isLoading }) => {
+  const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formErrors, setFormErrors] = useState({});
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.email) newErrors.email = 'Email is required';
+    else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(formData.email)) newErrors.email = 'Invalid email';
+    if (!formData.password) newErrors.password = 'Password is required';
+    else if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
+    setFormErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (validateForm()) {
+      onLogin(formData.email, formData.password);
+    }
+  };
+
+  return (
+    <div className="bg-slate-800/60 backdrop-blur-lg border border-blue-500/30 rounded-3xl p-8 shadow-2xl max-w-md mx-auto">
+      <div className="flex items-center justify-center mb-8">
+        <Logo className="w-16 h-16 mr-4" />
+        <div>
+          <h1 className="text-2xl font-bold text-white">PH</h1>
+          <p className="text-xs text-blue-300 -mt-1">POCKET HEALTH</p>
+        </div>
+      </div>
+
+      <h2 className="text-2xl font-bold text-white text-center mb-8">Sign In</h2>
+
+      {error && (
+        <div className="bg-red-500/20 border border-red-400/50 rounded-xl p-4 mb-6 text-red-200 text-sm">
+          <div className="flex items-center">
+            <span className="text-red-400 mr-2">⚠️</span>
+            {error}
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-6">
+        <div>
+          <label className="block text-blue-200 text-sm font-medium mb-2">Email Address</label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <span className="text-slate-400">✉️</span>
+            </div>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              className={`w-full bg-slate-700/50 border ${formErrors.email ? 'border-red-400/50' : 'border-blue-500/30'} rounded-xl px-12 py-4 text-white placeholder-slate-400 focus:outline-none focus:border-blue-400/60 focus:ring-2 focus:ring-blue-400/20 transition-all`}
+              placeholder="Enter your email"
+            />
+          </div>
+          {formErrors.email && <p className="text-red-400 text-sm mt-2">{formErrors.email}</p>}
+        </div>
+
+        <div>
+          <label className="block text-blue-200 text-sm font-medium mb-2">Password</label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <span className="text-slate-400">🔒</span>
+            </div>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={formData.password}
+              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+              className={`w-full bg-slate-700/50 border ${formErrors.password ? 'border-red-400/50' : 'border-blue-500/30'} rounded-xl px-12 py-4 pr-12 text-white placeholder-slate-400 focus:outline-none focus:border-blue-400/60 focus:ring-2 focus:ring-blue-400/20 transition-all`}
+              placeholder="Enter your password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-blue-300 transition-colors"
+            >
+              {showPassword ? '🙈' : '👁️'}
+            </button>
+          </div>
+          {formErrors.password && <p className="text-red-400 text-sm mt-2">{formErrors.password}</p>}
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={isLoading}
+          className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-slate-600 disabled:to-slate-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:hover:scale-100 shadow-lg flex items-center justify-center space-x-2"
+        >
+          {isLoading ? (
+            <>
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              <span>Signing In...</span>
+            </>
+          ) : (
+            <>
+              <span>🔐</span>
+              <span>Sign In</span>
+            </>
+          )}
+        </button>
+
+        <div className="text-center">
+          <p className="text-slate-400">
+            Don't have an account?{' '}
+            <button onClick={onSwitchToRegister} className="text-blue-400 hover:text-blue-300 font-medium transition-colors underline">
+              Sign up here
+            </button>
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-6 text-center bg-slate-700/30 rounded-xl p-3">
+        <p className="text-slate-300 text-sm font-medium mb-1">Demo Credentials:</p>
+        <p className="text-blue-300 text-xs">john.doe@example.com / password123</p>
+      </div>
+    </div>
+  );
+};
+
+// Register Component
+const Register = ({ onRegister, onSwitchToLogin, error, isLoading }) => {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '' });
+  const [formErrors, setFormErrors] = useState({});
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.name) newErrors.name = 'Name is required';
+    if (!formData.email) newErrors.email = 'Email is required';
+    else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(formData.email)) newErrors.email = 'Invalid email';
+    if (!formData.password) newErrors.password = 'Password is required';
+    else if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
+    if (!formData.confirmPassword) newErrors.confirmPassword = 'Please confirm password';
+    else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
+    setFormErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (validateForm()) {
+      onRegister(formData.name, formData.email, formData.password);
+    }
+  };
+
+  return (
+    <div className="bg-slate-800/60 backdrop-blur-lg border border-blue-500/30 rounded-3xl p-8 shadow-2xl max-w-md mx-auto">
+      <div className="flex items-center justify-center mb-8">
+        <Logo className="w-16 h-16 mr-4" />
+        <div>
+          <h1 className="text-2xl font-bold text-white">PH</h1>
+          <p className="text-xs text-blue-300 -mt-1">POCKET HEALTH</p>
+        </div>
+      </div>
+
+      <h2 className="text-2xl font-bold text-white text-center mb-8">Create Account</h2>
+
+      {error && (
+        <div className="bg-red-500/20 border border-red-400/50 rounded-xl p-4 mb-6 text-red-200 text-sm">
+          <div className="flex items-center">
+            <span className="text-red-400 mr-2">⚠️</span>
+            {error}
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-6">
+        <div>
+          <label className="block text-blue-200 text-sm font-medium mb-2">Full Name</label>
+          <input
+            type="text"
+            value={formData.name}
+            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+            className={`w-full bg-slate-700/50 border ${formErrors.name ? 'border-red-400/50' : 'border-blue-500/30'} rounded-xl px-4 py-4 text-white placeholder-slate-400 focus:outline-none focus:border-blue-400/60 transition-all`}
+            placeholder="Enter your full name"
+          />
+          {formErrors.name && <p className="text-red-400 text-sm mt-2">{formErrors.name}</p>}
+        </div>
+
+        <div>
+          <label className="block text-blue-200 text-sm font-medium mb-2">Email Address</label>
+          <input
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+            className={`w-full bg-slate-700/50 border ${formErrors.email ? 'border-red-400/50' : 'border-blue-500/30'} rounded-xl px-4 py-4 text-white placeholder-slate-400 focus:outline-none focus:border-blue-400/60 transition-all`}
+            placeholder="Enter your email"
+          />
+          {formErrors.email && <p className="text-red-400 text-sm mt-2">{formErrors.email}</p>}
+        </div>
+
+        <div>
+          <label className="block text-blue-200 text-sm font-medium mb-2">Password</label>
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={formData.password}
+              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+              className={`w-full bg-slate-700/50 border ${formErrors.password ? 'border-red-400/50' : 'border-blue-500/30'} rounded-xl px-4 py-4 pr-12 text-white placeholder-slate-400 focus:outline-none focus:border-blue-400/60 transition-all`}
+              placeholder="Create password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-blue-300"
+            >
+              {showPassword ? '🙈' : '👁️'}
+            </button>
+          </div>
+          {formErrors.password && <p className="text-red-400 text-sm mt-2">{formErrors.password}</p>}
+        </div>
+
+        <div>
+          <label className="block text-blue-200 text-sm font-medium mb-2">Confirm Password</label>
+          <div className="relative">
+            <input
+              type={showConfirmPassword ? 'text' : 'password'}
+              value={formData.confirmPassword}
+              onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+              className={`w-full bg-slate-700/50 border ${formErrors.confirmPassword ? 'border-red-400/50' : 'border-blue-500/30'} rounded-xl px-4 py-4 pr-12 text-white placeholder-slate-400 focus:outline-none focus:border-blue-400/60 transition-all`}
+              placeholder="Confirm password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-blue-300"
+            >
+              {showConfirmPassword ? '🙈' : '👁️'}
+            </button>
+          </div>
+          {formErrors.confirmPassword && <p className="text-red-400 text-sm mt-2">{formErrors.confirmPassword}</p>}
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={isLoading}
+          className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-slate-600 disabled:to-slate-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:hover:scale-100 shadow-lg flex items-center justify-center space-x-2"
+        >
+          {isLoading ? (
+            <>
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              <span>Creating Account...</span>
+            </>
+          ) : (
+            <>
+              <span>👥</span>
+              <span>Create Account</span>
+            </>
+          )}
+        </button>
+
+        <div className="text-center">
+          <p className="text-slate-400">
+            Already have an account?{' '}
+            <button onClick={onSwitchToLogin} className="text-blue-400 hover:text-blue-300 font-medium transition-colors underline">
+              Sign in here
+            </button>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Main Home Component with Authentication
 const Home = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentView, setCurrentView] = useState('home'); // 'home', 'login', 'register'
+  const [authError, setAuthError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     setIsVisible(true);
+    // Check if user is already logged in (you could check localStorage here)
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+      setIsAuthenticated(true);
+    }
   }, []);
 
-  // Logo component based on your image
-  const Logo = ({ className = "w-12 h-12" }) => (
-    <div className={`${className} relative`}>
-      <svg viewBox="0 0 100 100" className="w-full h-full">
-        {/* Brain outline */}
-        <path
-          d="M20 35 C15 25, 35 15, 50 20 C65 15, 85 25, 80 35 C85 45, 85 55, 80 65 C75 75, 65 80, 50 75 C35 80, 25 75, 20 65 C15 55, 15 45, 20 35 Z"
-          fill="none"
-          stroke="#4FC3F7"
-          strokeWidth="4"
-          className="brain-outline"
-        />
-        {/* Brain details */}
-        <path
-          d="M30 40 C35 35, 45 40, 50 35 C55 40, 65 35, 70 40"
-          fill="none"
-          stroke="#4FC3F7"
-          strokeWidth="2"
-        />
-        <path
-          d="M25 50 C30 45, 40 50, 50 45 C60 50, 70 45, 75 50"
-          fill="none"
-          stroke="#4FC3F7"
-          strokeWidth="2"
-        />
-        {/* Medical cross */}
-        <rect x="42" y="35" width="16" height="6" fill="#FF5252" rx="1" />
-        <rect x="47" y="30" width="6" height="16" fill="#FF5252" rx="1" />
-        {/* Brain stem */}
-        <rect x="47" y="70" width="6" height="15" fill="#4FC3F7" rx="3" />
-      </svg>
-    </div>
-  );
+  const handleLogin = async (email, password) => {
+    setIsLoading(true);
+    setAuthError('');
+    
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Demo authentication
+      if (email === 'john.doe@example.com' && password === 'password123') {
+        const userData = { name: 'John Doe', email };
+        setUser(userData);
+        setIsAuthenticated(true);
+        setCurrentView('home');
+        localStorage.setItem('currentUser', JSON.stringify(userData));
+      } else {
+        setAuthError('Invalid email or password. Use demo credentials.');
+      }
+    } catch (error) {
+      setAuthError('Login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // Simple icon components using CSS and Unicode
-  const ChevronRight = () => <span className="inline-block w-0 h-0 border-l-4 border-l-current border-t-2 border-t-transparent border-b-2 border-b-transparent"></span>;
-  const Shield = () => <span className="text-2xl">🛡️</span>;
-  const Users = () => <span className="text-2xl">👥</span>;
-  const Heart = () => <span className="text-2xl">❤️</span>;
-  const Clock = () => <span className="text-2xl">⏰</span>;
-  const Phone = () => <span className="text-lg">📞</span>;
-  const Mail = () => <span className="text-lg">✉️</span>;
-  const MapPin = () => <span className="text-lg">📍</span>;
-  const Search = () => <span className="text-xl">🔍</span>;
-  const Camera = () => <span className="text-2xl">📷</span>;
-  const UserAlert = () => <span className="text-2xl">🚨</span>;
-  const AIAnalytics = () => <span className="text-2xl">📊</span>;
+  const handleRegister = async (name, email, password) => {
+    setIsLoading(true);
+    setAuthError('');
+    
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      const userData = { name, email };
+      setUser(userData);
+      setIsAuthenticated(true);
+      setCurrentView('home');
+      localStorage.setItem('currentUser', JSON.stringify(userData));
+    } catch (error) {
+      setAuthError('Registration failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  return (
-    <div className="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 min-h-screen text-white overflow-hidden w-full">
-      {/* Animated background elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/10 to-red-400/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-red-400/10 to-blue-400/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-blue-500/5 rounded-full blur-2xl animate-pulse delay-500"></div>
+  const handleLogout = () => {
+    setUser(null);
+    setIsAuthenticated(false);
+    setCurrentView('home');
+    localStorage.removeItem('currentUser');
+  };
+
+  // Show authentication forms
+  if (currentView === 'login') {
+    return (
+      <div className="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 min-h-screen flex items-center justify-center p-4">
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/10 to-red-400/10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-red-400/10 to-blue-400/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        </div>
+        <div className="relative z-10 w-full">
+          <Login
+            onLogin={handleLogin}
+            onSwitchToRegister={() => setCurrentView('register')}
+            error={authError}
+            isLoading={isLoading}
+          />
+        </div>
       </div>
+    );
+  }
 
+  if (currentView === 'register') {
+    return (
+      <div className="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 min-h-screen flex items-center justify-center p-4">
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/10 to-red-400/10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-red-400/10 to-blue-400/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        </div>
+        <div className="relative z-10 w-full">
+          <Register
+            onRegister={handleRegister}
+            onSwitchToLogin={() => setCurrentView('login')}
+            error={authError}
+            isLoading={isLoading}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Main home page content
+  return (
+    <div className="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 min-h-screen text-white overflow-hidden w-full m-0 p-0">
+      {/* User Status Bar */}
+      {isAuthenticated && (
+        <div className="bg-slate-800/60 backdrop-blur-lg border-b border-blue-500/20 px-4 py-3">
+          <div className="max-w-7xl mx-auto flex justify-between items-center">
+            <div className="flex items-center space-x-3">
+              <Logo className="w-8 h-8" />
+              <span className="text-blue-200">Welcome, {user?.name}!</span>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="bg-red-500/20 hover:bg-red-500/30 text-red-300 px-4 py-2 rounded-lg transition-colors text-sm"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Hero Section */}
       <header className="relative py-16 md:py-24 px-4 md:px-6 text-center overflow-hidden">
         <div className={`relative z-10 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-          <div className="inline-flex items-center bg-blue-500/20 backdrop-blur-sm rounded-full px-6 py-3 mb-8 text-blue-200 font-medium border border-blue-400/30">
-            <Shield />
-            <span className="ml-2">Trusted Healthcare Solutions</span>
-          </div>
-          
-          <div className="mb-8">
-            <Logo className="w-24 h-24 mx-auto mb-6" />
-          </div>
-          
           <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
             <span className="text-white">Pocket</span>
             <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-red-400">
@@ -88,85 +442,30 @@ const Home = () => {
             with intelligent solutions for better patient outcomes and streamlined workflows.
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-            <button className="group bg-gradient-to-r from-blue-500 to-blue-600 text-white px-10 py-4 rounded-full font-semibold text-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 transform hover:scale-105 shadow-2xl flex items-center border border-blue-400/30">
-              Start Free Trial
-              <span className="ml-3 transform group-hover:translate-x-1 transition-transform">
-                <ChevronRight />
-              </span>
-            </button>
-            <button className="border-2 border-blue-400/50 text-blue-200 px-10 py-4 rounded-full font-semibold text-lg hover:bg-blue-500/10 transition-all duration-300 backdrop-blur-sm">
-              Watch Demo
-            </button>
+            {!isAuthenticated ? (
+              <>
+                <button 
+                  onClick={() => setCurrentView('login')}
+                  className="group bg-gradient-to-r from-blue-500 to-blue-600 text-white px-10 py-4 rounded-full font-semibold text-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 transform hover:scale-105 shadow-2xl flex items-center border border-blue-400/30"
+                >
+                  Login
+                </button>
+                <button 
+                  onClick={() => setCurrentView('register')}
+                  className="border-2 border-blue-400/50 text-blue-200 px-10 py-4 rounded-full font-semibold text-lg hover:bg-blue-500/10 transition-all duration-300 backdrop-blur-sm"
+                >
+                  Register
+                </button>
+              </>
+            ) : (
+              <div className="bg-green-500/20 border border-green-400/30 px-8 py-4 rounded-full text-green-200 font-semibold flex items-center space-x-2">
+                <span>✅</span>
+                <span>You're logged in! Explore the platform below.</span>
+              </div>
+            )}
           </div>
         </div>
       </header>
-
-      {/* Search Bar Section */}
-      <section className="py-12 px-4 md:px-6 relative">
-        <div className="max-w-4xl mx-auto">
-          {/* Search Bar */}
-          <div className={`transform transition-all duration-1000 delay-700 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-            <div className="relative mb-8">
-              <div className="flex items-center bg-slate-800/60 backdrop-blur-sm border border-blue-500/30 rounded-2xl px-6 py-4 shadow-2xl hover:border-blue-400/50 transition-all duration-300">
-                <Search />
-                <input
-                  type="text"
-                  placeholder="Search medical records, patient data, analytics..."
-                  className="flex-1 bg-transparent text-white placeholder-slate-400 ml-4 outline-none text-lg"
-                />
-                <button className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-2 rounded-xl font-medium hover:from-blue-600 hover:to-blue-700 transition-all transform hover:scale-105">
-                  Search
-                </button>
-              </div>
-            </div>
-
-            {/* Quick Action Icons */}
-            <div className="flex justify-center space-x-8">
-              {[
-                { icon: Camera, label: "Medical Imaging", color: "from-green-500 to-emerald-600" },
-                { icon: UserAlert, label: "Patient Alerts", color: "from-red-500 to-red-600" },
-                { icon: AIAnalytics, label: "AI Analytics", color: "from-purple-500 to-purple-600" }
-              ].map((item, index) => (
-                <div 
-                  key={index} 
-                  className={`group transform transition-all duration-500 delay-${800 + index * 100} ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}
-                >
-                  <div className="text-center">
-                    <button className={`w-16 h-16 bg-gradient-to-br ${item.color} rounded-2xl flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 group-hover:-translate-y-1 border border-white/20`}>
-                      <item.icon />
-                    </button>
-                    <p className="text-slate-300 text-sm font-medium mt-3 group-hover:text-white transition-colors">
-                      {item.label}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-12 md:py-20 px-4 md:px-6 bg-slate-800/50 backdrop-blur-sm relative border-y border-blue-500/20">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            {[
-              { number: "50K+", label: "Healthcare Professionals", icon: Users },
-              { number: "99.9%", label: "System Uptime", icon: Shield },
-              { number: "24/7", label: "Medical Support", icon: Clock },
-              { number: "500+", label: "Medical Facilities", icon: Heart }
-            ].map((stat, index) => (
-              <div key={index} className={`text-center transform transition-all duration-700 ${index === 0 ? 'delay-0' : index === 1 ? 'delay-200' : index === 2 ? 'delay-400' : 'delay-600'} ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500/20 to-red-500/20 rounded-2xl mb-4 border border-blue-400/30 backdrop-blur-sm">
-                  <stat.icon />
-                </div>
-                <div className="text-4xl font-bold text-white mb-2">{stat.number}</div>
-                <div className="text-slate-400 font-medium">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* About Section */}
       <section className="py-16 md:py-24 px-4 md:px-6 relative">
@@ -206,7 +505,6 @@ const Home = () => {
                   <div className="grid grid-cols-1 gap-6">
                     <div className="bg-slate-700/50 rounded-2xl p-6 border border-blue-400/20">
                       <div className="flex items-center mb-4">
-                        <Logo className="w-10 h-10 mr-3" />
                         <div>
                           <h3 className="font-bold text-white">Smart Health Monitoring</h3>
                           <p className="text-blue-300 text-sm">Real-time patient tracking</p>
@@ -273,8 +571,6 @@ const Home = () => {
           </div>
         </div>
       </section>
-
-    
     </div>
   );
 };
