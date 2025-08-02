@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 // Logo component
 const Logo = ({ className = "w-12 h-12" }) => (
@@ -46,13 +47,13 @@ function Navbar() {
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo Section */}
-          <div className="flex items-center space-x-3">
+          <Link to="/" className="flex items-center space-x-3">
             <Logo className="w-10 h-10" />
             <div>
               <h1 className="text-xl font-bold text-white">PH</h1>
               <p className="text-xs text-blue-300 -mt-1">POCKET HEALTH</p>
             </div>
-          </div>
+          </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
@@ -105,11 +106,11 @@ function Navbar() {
                 {item}
               </a>
             ))}
-            <div className="px-4 pt-2">
-              <button className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-3 rounded-full font-semibold hover:from-red-600 hover:to-red-700 transition-all">
+         
+              <Link to="/register" className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-3 rounded-full font-semibold hover:from-red-600 hover:to-red-700 transition-all">
                 Get Started
-              </button>
-            </div>
+              </Link>
+         
           </div>
         </div>
       </div>

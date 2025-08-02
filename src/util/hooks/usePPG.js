@@ -30,6 +30,9 @@ export const usePPG = () => {
   const canvasRef = useRef(null);
   const frameCount = useRef(0);
 
+  const [hrv, setHrv]                 = useState(null);      // 🆕 HRV metrics
+  const [arrhythmia, setArrhythmia]   = useState(null);      // 🆕 arrhythmia result
+
   /**
    * Initialize camera and setup
    */
@@ -122,22 +125,25 @@ export const usePPG = () => {
       });
 
       // Always collect data if we have reasonable signal
-      if (redIntensity > 30) { // Very low threshold
-        const now = performance.now();
-        
-        setRedValues(prev => {
-          const newValues = [...prev, redIntensity];
-          if (newValues.length > ppgProcessor.current.windowSize) {
-            newValues.shift();
-          }
-          
-          // Log progress every 30 frames (1 second)
-          if (frameCount.current % 30 === 0) {
-            console.log(`💗 PPG data: ${redIntensity.toFixed(2)}, buffer: ${newValues.length}`);
-          }
-          
-          return newValues;
-        });
+    if (redIntensity > 30) {
+  const now = performance.now();
+  
+  setRedValues(prev => {
+    const newValues = [...prev, redIntensity];
+    if (newValues.length > ppgProcessor.current.windowSize) {
+      newValues.shift();
+    }
+    
+    // Log progress every 30 frames (1 second)
+    if (frameCount.current % 30 === 0) {
+  console.log(`💗 PPG data: ${redIntensity.toFixed(2)}, buffer: ${newValues.length}`);
+      
+      // 🆕 Force analysis every second during recording
+      setTimeout(() => analyzeSignal(), 50);
+    }
+    
+    return newValues;
+  });
         
         setTimestamps(prev => {
           const newTimestamps = [...prev, now];
@@ -155,36 +161,75 @@ export const usePPG = () => {
   /**
    * Analyze PPG signal and calculate heart rate with improved algorithms
    */
-  const analyzeSignal = useCallback(() => {
-    if (redValues.length < 30) { // Need at least 1 second of data
-      setSignalQuality(0);
-      setCurrentHeartRate(null);
-      setConfidence(0);
-      return;
-    }
+const analyzeSignal = useCallback(() => {
+  console.log('🔬 ANALYZE SIGNAL START - redValues.length:', redValues.length);
+  console.log('🔬 Current signal quality:', signalQuality);
+  console.log('🔬 Is recording:', isRecording);
+  
+  if (redValues.length < 30) {
+    console.log('❌ Not enough data points, returning early');
+    setSignalQuality(0);
+    setCurrentHeartRate(null);
+    setConfidence(0);
+    return;
+  }
+  
+  try {
+    console.log('🔬 About to call assessLiveSignalQuality...');
+    const liveQuality = ppgProcessor.current.assessLiveSignalQuality(redValues);
+    console.log('🔬 Live quality result:', liveQuality);
     
-    try {
-      // Use improved live signal quality assessment
-      const liveQuality = ppgProcessor.current.assessLiveSignalQuality(redValues);
-      setSignalQuality(liveQuality.quality);
+    setSignalQuality(liveQuality.quality);
+    
+    console.log('🔬 QUALITY CHECK:', {
+      dataLength: redValues.length,
+      qualityScore: liveQuality.quality,
+      meetsDataThreshold: redValues.length >= 45,
+      meetsQualityThreshold: liveQuality.quality > 20
+    });
+    
+    // 🆕 Make conditions more lenient
+    if (redValues.length >= 45 && liveQuality.quality > 20) {
+      console.log('🔬 ENTERING PEAK DETECTION...');
       
-      // Only calculate heart rate if we have enough good quality data
-      if (redValues.length >= 60 && liveQuality.quality > 30) { // 2+ seconds of decent data
-        const filtered = ppgProcessor.current.applyBandpassFilter(redValues);
-        const peaks = ppgProcessor.current.findPeaks(filtered, 0.4);
-        const heartRate = ppgProcessor.current.calculateHeartRate(peaks);
-        const conf = ppgProcessor.current.calculateConfidence(peaks, liveQuality.quality);
-        
-        // Only update if we get a reasonable heart rate
-        if (heartRate && heartRate >= 40 && heartRate <= 200) {
-          setCurrentHeartRate(heartRate);
-          setConfidence(conf);
-        }
+      const filtered = ppgProcessor.current.applyBandpassFilter(redValues);
+      const peaks = ppgProcessor.current.findPeaks(filtered, 0.3);
+      
+      console.log('🔬 PEAKS FOUND:', peaks.length, peaks);
+      
+      const heartRate = ppgProcessor.current.calculateHeartRate(peaks);
+      const conf = ppgProcessor.current.calculateConfidence(peaks, liveQuality.quality);
+      
+      if (heartRate && heartRate >= 40 && heartRate <= 200) {
+        console.log('✅ Live heart rate detected:', heartRate);
+        setCurrentHeartRate(heartRate);
+        setConfidence(conf);
       }
-    } catch (error) {
-      console.error('Signal analysis error:', error);
+
+      if (peaks.length > 1) {
+        console.log('🔬 CALCULATING LIVE HRV AND ARRHYTHMIA...');
+        
+        const rr = ppgProcessor.current.calculateRRIntervals(peaks);
+        console.log('🫀 LIVE R-R intervals:', rr);
+        
+        const hrvResult = ppgProcessor.current.calculateHRV(rr);
+        console.log('🫀 LIVE HRV calculated:', hrvResult);
+        
+        const arrhythmiaResult = ppgProcessor.current.detectArrhythmia(rr);
+        console.log('⚡ LIVE Arrhythmia check:', arrhythmiaResult);
+        
+        setHrv(hrvResult);
+        setArrhythmia(arrhythmiaResult);
+      } else {
+        console.log('❌ Not enough peaks for HRV/arrhythmia:', peaks.length);
+      }
+    } else {
+      console.log('❌ Conditions not met for analysis');
     }
-  }, [redValues]);
+  } catch (error) {
+    console.error('❌ Signal analysis error:', error);
+  }
+}, [redValues]);
 
   /**
    * Start PPG measurement
@@ -207,6 +252,7 @@ export const usePPG = () => {
     setConfidence(0);
     setSignalQuality(0);
     setFingerPlacement(null);
+    ppgProcessor.current = new PPGSignalProcessor();
     frameCount.current = 0;
     
     setIsRecording(true);
@@ -233,7 +279,7 @@ export const usePPG = () => {
       signalQuality: signalQuality
     });
     
-    return ppgProcessor.current.processCompleMeasurement(redValues, timestamps);
+    return ppgProcessor.current.processCompleteMeasurement(redValues, timestamps);
   }, [redValues, timestamps, currentHeartRate, confidence, signalQuality]);
 
   /**
@@ -249,6 +295,8 @@ export const usePPG = () => {
     setFingerPlacement(null);
     setIsRecording(false);
     frameCount.current = 0;
+    ppgProcessor.current = new PPGSignalProcessor();
+
   }, []);
 
   /**
@@ -290,12 +338,9 @@ export const usePPG = () => {
         animationRef.current = requestAnimationFrame(animate);
       }
     };
-    
     if (isRecording) {
-      console.log('🎥 Starting frame processing loop...');
       animationRef.current = requestAnimationFrame(animate);
     } else {
-      console.log('⏹️ Stopping frame processing loop...');
     }
     
     return () => {
@@ -306,17 +351,17 @@ export const usePPG = () => {
     };
   }, [isRecording, processFrame]);
 
-  // Analyze signal whenever new data comes in (but not too frequently)
-  useEffect(() => {
-    // Debounce signal analysis to avoid excessive calculations
+useEffect(() => {
+  if (isRecording && redValues.length > 30) {
+    
     const timeoutId = setTimeout(() => {
-      analyzeSignal();
+      analyzeSignalWithData(redValues);
     }, 100);
     
     return () => clearTimeout(timeoutId);
-  }, [redValues.length]); // Only trigger when we get new data
+  }
+}, [redValues, isRecording]);
 
-  // Log signal quality changes for debugging
   useEffect(() => {
     if (fingerPlacement) {
       console.log('Finger placement update:', {
@@ -331,9 +376,48 @@ export const usePPG = () => {
   // Log heart rate changes
   useEffect(() => {
     if (currentHeartRate) {
-      console.log('Heart rate detected:', currentHeartRate, 'BPM, confidence:', confidence, '%');
     }
   }, [currentHeartRate, confidence]);
+
+  // 🆕 Create a new function that takes redValues as parameter
+const analyzeSignalWithData = useCallback((currentRedValues) => {
+  
+  if (currentRedValues.length < 30) {
+    setSignalQuality(0);
+    setCurrentHeartRate(null);
+    setConfidence(0);
+    return;
+  }
+  
+  try {
+    const liveQuality = ppgProcessor.current.assessLiveSignalQuality(currentRedValues);
+    
+    setSignalQuality(liveQuality.quality);
+    if (currentRedValues.length >= 45 && liveQuality.quality > 20) {
+      
+      const filtered = ppgProcessor.current.applyBandpassFilter(currentRedValues);
+      const peaks = ppgProcessor.current.findPeaks(filtered, 0.3);
+            
+      const heartRate = ppgProcessor.current.calculateHeartRate(peaks);
+      const conf = ppgProcessor.current.calculateConfidence(peaks, liveQuality.quality);
+      
+      if (heartRate && heartRate >= 40 && heartRate <= 200) {
+        setCurrentHeartRate(heartRate);
+        setConfidence(conf);
+      }
+
+      if (peaks.length > 1) {
+        const rr = ppgProcessor.current.calculateRRIntervals(peaks);
+        const hrvResult = ppgProcessor.current.calculateHRV(rr);
+        const arrhythmiaResult = ppgProcessor.current.detectArrhythmia(rr);
+        setHrv(hrvResult);
+        setArrhythmia(arrhythmiaResult);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Signal analysis error:', error);
+  }
+}, []);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -363,6 +447,8 @@ export const usePPG = () => {
     // Results
     currentHeartRate,
     confidence,
+    hrv,
+    arrhythmia,
     getMeasurementResults,
     
     // Debug info

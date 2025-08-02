@@ -64,9 +64,7 @@ export class CameraManager {
 
       for (const constraint of constraints) {
         try {
-          console.log('Trying camera constraint:', constraint);
           stream = await navigator.mediaDevices.getUserMedia(constraint);
-          console.log('Camera constraint successful');
           break;
         } catch (error) {
           lastError = error;

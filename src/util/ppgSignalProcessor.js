@@ -43,51 +43,41 @@ export class PPGSignalProcessor {
    * @param {number[]} signal - PPG signal
    * @returns {number} - Quality score (0-100)
    */
-  assessSignalQuality(signal) {
-    if (signal.length < 10) return 0;
-    
-    // Calculate various signal metrics
-    const mean = signal.reduce((a, b) => a + b) / signal.length;
-    const variance = signal.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / signal.length;
-    const stdDev = Math.sqrt(variance);
-    
-    // Signal amplitude (peak-to-peak variation)
-    const maxValue = Math.max(...signal);
-    const minValue = Math.min(...signal);
-    const amplitude = maxValue - minValue;
-    
-    // Signal-to-noise ratio
-    const snr = amplitude / (stdDev + 0.001);
-    
-    // DC component check (finger should create higher baseline)
-    const dcLevel = mean;
-    
-    // Quality scoring with multiple factors
-    let quality = 0;
-    
-    // Factor 1: Signal amplitude (should have variation)
-    if (amplitude > 5) quality += 30;
-    else if (amplitude > 2) quality += 15;
-    
-    // Factor 2: SNR
-    if (snr > 3) quality += 25;
-    else if (snr > 1.5) quality += 15;
-    else if (snr > 0.5) quality += 5;
-    
-    // Factor 3: DC level (finger present creates higher baseline)
-    if (dcLevel > 50) quality += 20;
-    else if (dcLevel > 30) quality += 10;
-    
-    // Factor 4: Signal consistency
-    if (stdDev > 2 && stdDev < 20) quality += 15;
-    else if (stdDev > 1) quality += 5;
-    
-    // Factor 5: Frequency content (basic check for heart rate frequencies)
-    const hasHeartRatePattern = this.checkHeartRateFrequency(signal);
-    if (hasHeartRatePattern) quality += 10;
-    
-    return Math.min(100, Math.max(0, quality));
-  }
+ assessSignalQuality(signal) {
+  if (signal.length < 10) return 0;
+  
+  const mean = signal.reduce((a, b) => a + b) / signal.length;
+  const variance = signal.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / signal.length;
+  const stdDev = Math.sqrt(variance);
+  
+  const maxValue = Math.max(...signal);
+  const minValue = Math.min(...signal);
+  const amplitude = maxValue - minValue;
+  
+  const snr = amplitude / (stdDev + 0.001);
+  
+  let quality = 0;
+  
+  // 🆕 More lenient amplitude scoring
+  if (amplitude > 3) quality += 35;        // Lowered from 5
+  else if (amplitude > 1.5) quality += 25; // Lowered from 2
+  else if (amplitude > 0.5) quality += 15; // New tier
+  
+  // 🆕 More lenient SNR scoring  
+  if (snr > 2) quality += 30;              // Lowered from 3
+  else if (snr > 1) quality += 20;         // Lowered from 1.5
+  else if (snr > 0.3) quality += 10;       // Lowered from 0.5
+  
+  // 🆕 More lenient DC level
+  if (mean > 40) quality += 25;            // Lowered from 50
+  else if (mean > 20) quality += 15;       // Lowered from 30
+  
+  // 🆕 More lenient consistency
+  if (stdDev > 1 && stdDev < 30) quality += 10; // Expanded range
+  else if (stdDev > 0.5) quality += 5;
+  
+  return Math.min(100, Math.max(0, quality));
+}
 
   /**
    * Check if signal contains heart rate frequencies
@@ -160,50 +150,100 @@ export class PPGSignalProcessor {
     return smoothed;
   }
 
-  /**
-   * Improved peak detection with adaptive thresholding
-   * @param {number[]} signal - Filtered PPG signal
-   * @param {number} threshold - Base threshold (0-1)
-   * @returns {number[]} - Array of peak indices
-   */
-  findPeaks(signal, threshold = 0.4) {
-    if (signal.length < 10) return [];
-    
-    const peaks = [];
-    const maxValue = Math.max(...signal);
-    const minValue = Math.min(...signal);
-    const range = maxValue - minValue;
-    
-    if (range < 1) return []; // Not enough variation
-    
-    // Adaptive threshold based on signal characteristics
-    const adaptiveThreshold = minValue + (range * threshold);
-    const minPeakDistance = Math.floor(this.sampleRate * 0.4); // Minimum 0.4s between peaks (150 BPM max)
-    
-    for (let i = 2; i < signal.length - 2; i++) {
-      // Check if current point is a local maximum
-      if (signal[i] > signal[i - 1] && 
-          signal[i] > signal[i + 1] &&
-          signal[i] > signal[i - 2] && 
-          signal[i] > signal[i + 2] &&
-          signal[i] > adaptiveThreshold) {
-        
-        // Ensure minimum distance from last peak
-        if (peaks.length === 0 || i - peaks[peaks.length - 1] >= minPeakDistance) {
-          peaks.push(i);
-        }
-      }
+  calculateRRIntervals(peaks, sampleRate = this.sampleRate) {
+    const rr = [];
+    for (let i = 1; i < peaks.length; i++) {
+      const Δsamples = peaks[i] - peaks[i - 1];
+      rr.push((Δsamples / sampleRate) * 1000);   // → ms
     }
-    
-    return peaks;
+    return rr;
   }
 
-  /**
-   * Enhanced confidence calculation
-   * @param {number[]} peaks - Array of peak indices
-   * @param {number} signalQuality - Signal quality score
-   * @returns {number} - Confidence score (0-100)
-   */
+ calculateHRV(rr) {
+  console.log('📊 HRV input - RR intervals length:', rr.length); // Add this debug
+  
+  if (rr.length < 3) { // 🆕 Changed from 10 to 3
+    console.log('❌ Not enough RR intervals for HRV:', rr.length);
+    return null;
+  }
+
+  const mean = rr.reduce((a, b) => a + b, 0) / rr.length;
+  const sdnn = Math.sqrt(
+    rr.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / rr.length
+  );
+
+  const diff = rr.slice(1).map((v, i) => Math.abs(v - rr[i]));
+  const rmssd = Math.sqrt(
+    diff.reduce((a, b) => a + b * b, 0) / diff.length
+  );
+
+  const pnn50 = (diff.filter((d) => d > 50).length / diff.length) * 100;
+
+  console.log('✅ HRV calculated successfully:', { sdnn, rmssd, pnn50 }); // Add this debug
+
+  return { sdnn, rmssd, pnn50 };
+}
+
+processCompleteMeasurement(redVals = [], timeStamps = []) {
+    if (redVals.length < 60) {
+      return { success: false, error: 'Not enough data for a valid reading' };
+    }
+
+    const filtered = this.applyBandpassFilter(redVals);
+    const peaks = this.findPeaks(filtered, 0.4);
+    const heartRate = this.calculateHeartRate(peaks);
+    const quality = this.assessSignalQuality(redVals);
+    const confidence = this.calculateConfidence(peaks, quality);
+
+const rr = this.calculateRRIntervals(peaks);
+console.log('📋 Final R-R intervals:', rr);
+
+const hrv = this.calculateHRV(rr);
+console.log('📋 Final HRV:', hrv);
+
+const arr = this.detectArrhythmia(rr);
+console.log('📋 Final arrhythmia:', arr);
+
+    return {
+ success: !!heartRate,
+  heartRate,
+  confidence,
+  signalQuality: quality,
+  measurementDuration: redVals.length / this.sampleRate,
+  peaksDetected: peaks.length,
+  timestamp: Date.now(),
+  hrv,
+  arrhythmia: arr
+    };
+  }
+
+  findPeaks(signal, threshold = 0.3) { 
+  if (signal.length < 10) return [];
+  
+  const peaks = [];
+  const maxValue = Math.max(...signal);
+  const minValue = Math.min(...signal);
+  const range = maxValue - minValue;
+  
+  if (range < 0.5) return []; 
+  
+  const adaptiveThreshold = minValue + (range * threshold);
+  const minPeakDistance = Math.floor(this.sampleRate * 0.3); 
+  
+  for (let i = 1; i < signal.length - 1; i++) { 
+    if (signal[i] > signal[i - 1] && 
+        signal[i] > signal[i + 1] &&
+        signal[i] > adaptiveThreshold) {
+      
+      if (peaks.length === 0 || i - peaks[peaks.length - 1] >= minPeakDistance) {
+        peaks.push(i);
+      }
+    }
+  }
+  
+  return peaks;
+}
+
   calculateConfidence(peaks, signalQuality) {
     if (peaks.length < 2) return 0;
     
@@ -238,56 +278,28 @@ export class PPGSignalProcessor {
     return Math.min(100, Math.max(0, Math.round(confidence)));
   }
 
-  /**
-   * Calculate heart rate from detected peaks
-   * @param {number[]} peaks - Array of peak indices
-   * @param {number} sampleRate - Sampling rate (FPS)
-   * @returns {number|null} - Heart rate in BPM
-   */
   calculateHeartRate(peaks, sampleRate = 30) {
-    if (peaks.length < 2) {
-      console.log('❌ Not enough peaks for heart rate calculation:', peaks.length);
-      return null;
-    }
-    
-    // Calculate intervals between peaks (in samples)
-    const intervals = [];
-    for (let i = 1; i < peaks.length; i++) {
-      intervals.push(peaks[i] - peaks[i - 1]);
-    }
-    
-    console.log('📏 Peak intervals (samples):', intervals);
-    
-    // Remove outliers (intervals that are too short or too long)
-    const filteredIntervals = intervals.filter(interval => {
-      const bpm = (sampleRate * 60) / interval;
-      return bpm >= 40 && bpm <= 200;
-    });
-    
-    if (filteredIntervals.length === 0) {
-      console.log('❌ No valid intervals after filtering');
-      return null;
-    }
-    
-    console.log('✅ Valid intervals:', filteredIntervals.length, 'out of', intervals.length);
-    
-    // Calculate average interval
-    const avgInterval = filteredIntervals.reduce((a, b) => a + b) / filteredIntervals.length;
-    
-    // Convert to BPM
-    const heartRate = (sampleRate * 60) / avgInterval;
-    
-    console.log('💗 Heart rate calculation: avgInterval =', avgInterval.toFixed(2), 'samples, BPM =', heartRate.toFixed(1));
-    
-    return Math.round(heartRate);
+  if (peaks.length < 2) return null;
+  
+  const intervals = [];
+  for (let i = 1; i < peaks.length; i++) {
+    intervals.push(peaks[i] - peaks[i - 1]);
   }
+  
+  // 🆕 More lenient heart rate range
+  const filteredIntervals = intervals.filter(interval => {
+    const bpm = (sampleRate * 60) / interval;
+    return bpm >= 35 && bpm <= 220; // 🆕 Expanded from 40-200
+  });
+  
+  if (filteredIntervals.length === 0) return null;
+  
+  const avgInterval = filteredIntervals.reduce((a, b) => a + b) / filteredIntervals.length;
+  const heartRate = (sampleRate * 60) / avgInterval;
+  
+  return Math.round(heartRate);
+}
 
-  /**
-   * Enhanced confidence calculation
-   * @param {number[]} peaks - Array of peak indices
-   * @param {number} signalQuality - Signal quality score
-   * @returns {number} - Confidence score (0-100)
-   */
   calculateConfidence(peaks, signalQuality) {
     if (peaks.length < 2) {
       console.log('❌ Not enough peaks for confidence calculation');
@@ -387,5 +399,103 @@ export class PPGSignalProcessor {
     });
     
     return Math.min(100, Math.max(0, quality));
+  }
+
+  /**
+   * Detect potential arrhythmias from R-R intervals
+   * @param {number[]} rrIntervals - Array of R-R intervals in milliseconds
+   * @returns {Object} - Arrhythmia detection results
+   */
+  detectArrhythmia(rrIntervals) {
+  console.log('⚡ Arrhythmia input - RR intervals:', rrIntervals); // Add this debug
+  
+  if (rrIntervals.length < 2) { // 🆕 Changed from 5 to 2
+    return {
+      detected: false,
+      type: 'insufficient_data',
+      confidence: 0,
+      message: 'Need more data for arrhythmia detection'
+    };
+  }
+
+    const avgInterval = rrIntervals.reduce((a, b) => a + b) / rrIntervals.length;
+    const variance = rrIntervals.reduce((a, b) => a + Math.pow(b - avgInterval, 2), 0) / rrIntervals.length;
+    const stdDev = Math.sqrt(variance);
+    const cv = stdDev / avgInterval; // Coefficient of variation
+
+    // Convert average interval to heart rate
+    const avgHeartRate = 60000 / avgInterval;
+
+    // Atrial Fibrillation detection (high variability)
+    if (cv > 0.3 && avgHeartRate > 90) {
+      return {
+        detected: true,
+        type: 'possible_atrial_fibrillation',
+        confidence: Math.min(95, cv * 100),
+        message: 'Irregular heartbeat pattern detected. Consider consulting a healthcare provider.',
+        severity: 'high'
+      };
+    }
+
+    // Bradycardia
+    if (avgHeartRate < 50) {
+      return {
+        detected: true,
+        type: 'bradycardia',
+        confidence: 90,
+        message: 'Slow heart rate detected.',
+        severity: 'medium'
+      };
+    }
+
+    // Tachycardia
+    if (avgHeartRate > 120) {
+      return {
+        detected: true,
+        type: 'tachycardia',
+        confidence: 90,
+        message: 'Fast heart rate detected.',
+        severity: 'medium'
+      };
+    }
+  console.log('✅ Arrhythmia analysis complete'); // Add this debug
+
+    // Normal rhythm
+    return {
+      detected: false,
+      type: 'normal',
+      confidence: 95,
+      message: 'Normal heart rhythm detected.',
+      severity: 'none'
+    };
+  }
+
+  processCompleteMeasurement(redVals = [], timeStamps = []) {
+    if (redVals.length < 45) {
+      return { success: false, error: 'Not enough data for a valid reading' };
+    }
+
+    const filtered = this.applyBandpassFilter(redVals);
+    const peaks = this.findPeaks(filtered, 0.4);
+    const heartRate = this.calculateHeartRate(peaks);
+    const quality = this.assessSignalQuality(redVals);
+    const confidence = this.calculateConfidence(peaks, quality);
+
+    // Add HRV and arrhythmia calculations
+    const rr = this.calculateRRIntervals(peaks);
+    const hrv = this.calculateHRV(rr);
+    const arr = this.detectArrhythmia(rr); // 🆕 Now calling as class method
+
+    return {
+      success: !!heartRate,
+      heartRate,
+      confidence,
+      signalQuality: quality,
+      measurementDuration: redVals.length / this.sampleRate,
+      peaksDetected: peaks.length,
+      timestamp: Date.now(),
+      hrv,
+      arrhythmia: arr
+    };
   }
 }

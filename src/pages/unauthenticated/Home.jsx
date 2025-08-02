@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 
 // Logo component
 const Logo = ({ className = "w-12 h-12" }) => (
@@ -28,274 +29,6 @@ const Logo = ({ className = "w-12 h-12" }) => (
     </svg>
   </div>
 );
-
-// Login Component
-const Login = ({ onLogin, onSwitchToRegister, error, isLoading }) => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({ email: '', password: '' });
-  const [formErrors, setFormErrors] = useState({});
-
-  const validateForm = () => {
-    const newErrors = {};
-    if (!formData.email) newErrors.email = 'Email is required';
-    else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(formData.email)) newErrors.email = 'Invalid email';
-    if (!formData.password) newErrors.password = 'Password is required';
-    else if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
-    setFormErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (validateForm()) {
-      onLogin(formData.email, formData.password);
-    }
-  };
-
-  return (
-    <div className="bg-slate-800/60 backdrop-blur-lg border border-blue-500/30 rounded-3xl p-8 shadow-2xl max-w-md mx-auto">
-      <div className="flex items-center justify-center mb-8">
-        <Logo className="w-16 h-16 mr-4" />
-        <div>
-          <h1 className="text-2xl font-bold text-white">PH</h1>
-          <p className="text-xs text-blue-300 -mt-1">POCKET HEALTH</p>
-        </div>
-      </div>
-
-      <h2 className="text-2xl font-bold text-white text-center mb-8">Sign In</h2>
-
-      {error && (
-        <div className="bg-red-500/20 border border-red-400/50 rounded-xl p-4 mb-6 text-red-200 text-sm">
-          <div className="flex items-center">
-            <span className="text-red-400 mr-2">⚠️</span>
-            {error}
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-6">
-        <div>
-          <label className="block text-blue-200 text-sm font-medium mb-2">Email Address</label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <span className="text-slate-400">✉️</span>
-            </div>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-              className={`w-full bg-slate-700/50 border ${formErrors.email ? 'border-red-400/50' : 'border-blue-500/30'} rounded-xl px-12 py-4 text-white placeholder-slate-400 focus:outline-none focus:border-blue-400/60 focus:ring-2 focus:ring-blue-400/20 transition-all`}
-              placeholder="Enter your email"
-            />
-          </div>
-          {formErrors.email && <p className="text-red-400 text-sm mt-2">{formErrors.email}</p>}
-        </div>
-
-        <div>
-          <label className="block text-blue-200 text-sm font-medium mb-2">Password</label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <span className="text-slate-400">🔒</span>
-            </div>
-            <input
-              type={showPassword ? 'text' : 'password'}
-              value={formData.password}
-              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-              className={`w-full bg-slate-700/50 border ${formErrors.password ? 'border-red-400/50' : 'border-blue-500/30'} rounded-xl px-12 py-4 pr-12 text-white placeholder-slate-400 focus:outline-none focus:border-blue-400/60 focus:ring-2 focus:ring-blue-400/20 transition-all`}
-              placeholder="Enter your password"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-blue-300 transition-colors"
-            >
-              {showPassword ? '🙈' : '👁️'}
-            </button>
-          </div>
-          {formErrors.password && <p className="text-red-400 text-sm mt-2">{formErrors.password}</p>}
-        </div>
-
-        <button
-          onClick={handleSubmit}
-          disabled={isLoading}
-          className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-slate-600 disabled:to-slate-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:hover:scale-100 shadow-lg flex items-center justify-center space-x-2"
-        >
-          {isLoading ? (
-            <>
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-              <span>Signing In...</span>
-            </>
-          ) : (
-            <>
-              <span>🔐</span>
-              <span>Sign In</span>
-            </>
-          )}
-        </button>
-
-        <div className="text-center">
-          <p className="text-slate-400">
-            Don't have an account?{' '}
-            <button onClick={onSwitchToRegister} className="text-blue-400 hover:text-blue-300 font-medium transition-colors underline">
-              Sign up here
-            </button>
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-6 text-center bg-slate-700/30 rounded-xl p-3">
-        <p className="text-slate-300 text-sm font-medium mb-1">Demo Credentials:</p>
-        <p className="text-blue-300 text-xs">john.doe@example.com / password123</p>
-      </div>
-    </div>
-  );
-};
-
-// Register Component
-const Register = ({ onRegister, onSwitchToLogin, error, isLoading }) => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '' });
-  const [formErrors, setFormErrors] = useState({});
-
-  const validateForm = () => {
-    const newErrors = {};
-    if (!formData.name) newErrors.name = 'Name is required';
-    if (!formData.email) newErrors.email = 'Email is required';
-    else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(formData.email)) newErrors.email = 'Invalid email';
-    if (!formData.password) newErrors.password = 'Password is required';
-    else if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
-    if (!formData.confirmPassword) newErrors.confirmPassword = 'Please confirm password';
-    else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
-    setFormErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (validateForm()) {
-      onRegister(formData.name, formData.email, formData.password);
-    }
-  };
-
-  return (
-    <div className="bg-slate-800/60 backdrop-blur-lg border border-blue-500/30 rounded-3xl p-8 shadow-2xl max-w-md mx-auto">
-      <div className="flex items-center justify-center mb-8">
-        <Logo className="w-16 h-16 mr-4" />
-        <div>
-          <h1 className="text-2xl font-bold text-white">PH</h1>
-          <p className="text-xs text-blue-300 -mt-1">POCKET HEALTH</p>
-        </div>
-      </div>
-
-      <h2 className="text-2xl font-bold text-white text-center mb-8">Create Account</h2>
-
-      {error && (
-        <div className="bg-red-500/20 border border-red-400/50 rounded-xl p-4 mb-6 text-red-200 text-sm">
-          <div className="flex items-center">
-            <span className="text-red-400 mr-2">⚠️</span>
-            {error}
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-6">
-        <div>
-          <label className="block text-blue-200 text-sm font-medium mb-2">Full Name</label>
-          <input
-            type="text"
-            value={formData.name}
-            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-            className={`w-full bg-slate-700/50 border ${formErrors.name ? 'border-red-400/50' : 'border-blue-500/30'} rounded-xl px-4 py-4 text-white placeholder-slate-400 focus:outline-none focus:border-blue-400/60 transition-all`}
-            placeholder="Enter your full name"
-          />
-          {formErrors.name && <p className="text-red-400 text-sm mt-2">{formErrors.name}</p>}
-        </div>
-
-        <div>
-          <label className="block text-blue-200 text-sm font-medium mb-2">Email Address</label>
-          <input
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-            className={`w-full bg-slate-700/50 border ${formErrors.email ? 'border-red-400/50' : 'border-blue-500/30'} rounded-xl px-4 py-4 text-white placeholder-slate-400 focus:outline-none focus:border-blue-400/60 transition-all`}
-            placeholder="Enter your email"
-          />
-          {formErrors.email && <p className="text-red-400 text-sm mt-2">{formErrors.email}</p>}
-        </div>
-
-        <div>
-          <label className="block text-blue-200 text-sm font-medium mb-2">Password</label>
-          <div className="relative">
-            <input
-              type={showPassword ? 'text' : 'password'}
-              value={formData.password}
-              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-              className={`w-full bg-slate-700/50 border ${formErrors.password ? 'border-red-400/50' : 'border-blue-500/30'} rounded-xl px-4 py-4 pr-12 text-white placeholder-slate-400 focus:outline-none focus:border-blue-400/60 transition-all`}
-              placeholder="Create password"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-blue-300"
-            >
-              {showPassword ? '🙈' : '👁️'}
-            </button>
-          </div>
-          {formErrors.password && <p className="text-red-400 text-sm mt-2">{formErrors.password}</p>}
-        </div>
-
-        <div>
-          <label className="block text-blue-200 text-sm font-medium mb-2">Confirm Password</label>
-          <div className="relative">
-            <input
-              type={showConfirmPassword ? 'text' : 'password'}
-              value={formData.confirmPassword}
-              onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-              className={`w-full bg-slate-700/50 border ${formErrors.confirmPassword ? 'border-red-400/50' : 'border-blue-500/30'} rounded-xl px-4 py-4 pr-12 text-white placeholder-slate-400 focus:outline-none focus:border-blue-400/60 transition-all`}
-              placeholder="Confirm password"
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-blue-300"
-            >
-              {showConfirmPassword ? '🙈' : '👁️'}
-            </button>
-          </div>
-          {formErrors.confirmPassword && <p className="text-red-400 text-sm mt-2">{formErrors.confirmPassword}</p>}
-        </div>
-
-        <button
-          onClick={handleSubmit}
-          disabled={isLoading}
-          className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-slate-600 disabled:to-slate-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:hover:scale-100 shadow-lg flex items-center justify-center space-x-2"
-        >
-          {isLoading ? (
-            <>
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-              <span>Creating Account...</span>
-            </>
-          ) : (
-            <>
-              <span>👥</span>
-              <span>Create Account</span>
-            </>
-          )}
-        </button>
-
-        <div className="text-center">
-          <p className="text-slate-400">
-            Already have an account?{' '}
-            <button onClick={onSwitchToLogin} className="text-blue-400 hover:text-blue-300 font-medium transition-colors underline">
-              Sign in here
-            </button>
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // Main Home Component with Authentication
 const Home = () => {
@@ -444,18 +177,20 @@ const Home = () => {
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
             {!isAuthenticated ? (
               <>
-                <button 
+                <Link
+                to="login" 
                   onClick={() => setCurrentView('login')}
                   className="group bg-gradient-to-r from-blue-500 to-blue-600 text-white px-10 py-4 rounded-full font-semibold text-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 transform hover:scale-105 shadow-2xl flex items-center border border-blue-400/30"
                 >
                   Login
-                </button>
-                <button 
+                </Link>
+                <Link 
                   onClick={() => setCurrentView('register')}
                   className="border-2 border-blue-400/50 text-blue-200 px-10 py-4 rounded-full font-semibold text-lg hover:bg-blue-500/10 transition-all duration-300 backdrop-blur-sm"
+                  to="register"
                 >
                   Register
-                </button>
+                </Link>
               </>
             ) : (
               <div className="bg-green-500/20 border border-green-400/30 px-8 py-4 rounded-full text-green-200 font-semibold flex items-center space-x-2">

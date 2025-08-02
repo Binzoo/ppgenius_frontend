@@ -17,30 +17,23 @@ const MeasurementControls = ({
   const [isComplete, setIsComplete] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Handle automatic 30-second measurement timer
   useEffect(() => {
     let intervalId;
     
     if (isRecording) {
-      console.log('⏰ Starting 30-second countdown timer...');
-      setDuration(0); // Reset duration when starting
+      setDuration(0); 
       
       intervalId = setInterval(() => {
         setDuration(prevDuration => {
           const newDuration = prevDuration + 1;
           const remaining = targetDuration - newDuration;
           
-          // Log countdown every 5 seconds
           if (newDuration % 5 === 0 || remaining <= 5) {
-            console.log(`⏱️ Countdown: ${remaining} seconds remaining (${newDuration}/${targetDuration})`);
           }
           
-          // Auto-stop when we reach target duration
           if (newDuration >= targetDuration) {
-            console.log('🎯 30 seconds completed! Auto-stopping measurement...');
             setIsComplete(true);
-            // Don't call onStop here to avoid infinite loop
-            return targetDuration; // Cap at target duration
+            return targetDuration; 
           }
           
           return newDuration;
@@ -53,44 +46,36 @@ const MeasurementControls = ({
         clearInterval(intervalId);
       }
     };
-  }, [isRecording, targetDuration]); // Removed onStop to avoid dependency loop
+  }, [isRecording, targetDuration]); 
 
-  // Handle auto-stop when duration reaches target
   useEffect(() => {
     if (duration >= targetDuration && isRecording) {
-      console.log('⏹️ Auto-stopping measurement after 30 seconds...');
       onStop();
     }
   }, [duration, targetDuration, isRecording, onStop]);
 
-  // Reset when starting new measurement
   const handleStart = () => {
-    console.log('🔴 Starting fresh 30-second measurement...');
     setDuration(0);
     setIsComplete(false);
     onStart();
   };
 
   const handleStop = () => {
-    console.log('🛑 Stopping measurement early...');
     setIsComplete(true);
     onStop();
   };
 
   const handleRetake = () => {
-    console.log('🔄 Retaking measurement...');
     setDuration(0);
     setIsComplete(false);
     onRetake();
   };
 
   const handleSave = async () => {
-    console.log('💾 Saving measurement results...');
     setIsSaving(true);
     try {
       await onSave(measurementResults);
     } catch (error) {
-      console.error('Save failed:', error);
       alert('Failed to save measurement. Please try again.');
     } finally {
       setIsSaving(false);
@@ -114,10 +99,8 @@ const MeasurementControls = ({
             {isComplete && <CheckCircle className="w-5 h-5 text-green-600" />}
           </div>
           
-          {/* Large Countdown Timer Display */}
           <div className="text-center mb-4">
             {isRecording ? (
-              // Show countdown during recording
               <>
                 <div className="text-8xl font-bold text-red-600 mb-2 font-mono">
                   {String(timeRemaining).padStart(2, '0')}
@@ -130,7 +113,7 @@ const MeasurementControls = ({
                 </div>
               </>
             ) : isComplete ? (
-              // Show completion
+             
               <>
                 <div className="text-8xl font-bold text-green-600 mb-2">
                   ✓
