@@ -503,7 +503,7 @@ const Home = () => {
               <div className="relative">
                 <div className="bg-gradient-to-br from-slate-800/60 to-blue-900/60 backdrop-blur-sm rounded-3xl p-8 border border-blue-500/20 shadow-2xl">
                   <div className="grid grid-cols-1 gap-6">
-                    <div className="bg-slate-700/50 rounded-2xl p-6 border border-blue-400/20">
+                    <div className="bg-slate-700/50 rounded-2xl border border-blue-400/20">
                       <div className="flex items-center mb-4">
                         <div>
                           <h3 className="font-bold text-white">Smart Health Monitoring</h3>
@@ -520,7 +520,7 @@ const Home = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="bg-slate-700/50 rounded-2xl p-6 border border-red-400/20">
+                    <div className="bg-slate-700/50 rounded-2xl border border-red-400/20">
                       <h3 className="font-bold text-white mb-3">Emergency Response</h3>
                       <div className="flex items-center justify-between">
                         <span className="text-slate-300">Response Time</span>
