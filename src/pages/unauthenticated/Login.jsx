@@ -41,6 +41,8 @@ const Login = ({
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
 
+  
+
   const validateForm = () => {
     const newErrors = {};
     
@@ -68,24 +70,37 @@ const Login = ({
     // Clear any existing errors
     if (onClearError) onClearError();
     
-    // Call the provided login function or use demo logic
-    if (onLogin) {
-      const result = await onLogin(formData.email, formData.password);
-      if (result?.success && onNavigateToDashboard) {
-        onNavigateToDashboard();
+  try {
+    const response = await fetch(
+      'https://hackathonteam1-c3aycbddd4geayh8.canadacentral-01.azurewebsites.net/api/v1/Auth/login',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
       }
-    } else {
-      // Demo login logic for standalone use
-      if (formData.email === 'john.doe@example.com' && formData.password === 'password123') {
-        alert('Login successful! In a real app, this would redirect to dashboard.');
-        if (onNavigateToDashboard) {
-          onNavigateToDashboard();
-        }
-      } else {
-        // Simulate error for demo
-        alert('Invalid credentials. Use demo credentials: john.doe@example.com / password123');
-      }
+    );
+
+    console.log('Login response:', response);
+
+    if (!response.ok) {
+      throw new Error('Invalid credentials');
     }
+
+    const data = await response.json();
+    // Store token in localStorage
+    localStorage.setItem('sessionToken', data.token);
+
+    if (onNavigateToDashboard) {
+      onNavigateToDashboard();
+    }
+  } catch (error) {
+    alert(error.message || 'Login failed');
+  }
   };
 
   const handleInputChange = (field, value) => {

@@ -321,11 +321,45 @@ const Home = () => {
     setAuthError('');
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+        const response = await fetch(
+        'https://hackathonteam1-c3aycbddd4geayh8.canadacentral-01.azurewebsites.net/api/v1/Auth/login',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email,
+            password: password,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Invalid credentials');
+      }
+
+      const data = await response.json();
+      // Store token in localStorage
+      localStorage.setItem('sessionToken', data.token);
+
+      if (onNavigateToDashboard) {
+        onNavigateToDashboard();
+      }
+
+      const userData = {
+        name: data.fullName,
+        email: data.email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+      };
+      setUser(userData);
+      setIsAuthenticated(true);
+      setCurrentView('home');
+      localStorage.setItem('currentUser', JSON.stringify(userData));
       
       // Demo authentication
-      if (email === 'john.doe@example.com' && password === 'password123') {
+      /*if (email === 'john.doe@example.com' && password === 'password123') {
         const userData = { name: 'John Doe', email };
         setUser(userData);
         setIsAuthenticated(true);
@@ -333,9 +367,10 @@ const Home = () => {
         localStorage.setItem('currentUser', JSON.stringify(userData));
       } else {
         setAuthError('Invalid email or password. Use demo credentials.');
-      }
+      }*/
     } catch (error) {
       setAuthError('Login failed. Please try again.');
+      alert(error.message || 'Login failed');
     } finally {
       setIsLoading(false);
     }
@@ -346,14 +381,40 @@ const Home = () => {
     setAuthError('');
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const userData = { name, email };
-      setUser(userData);
-      setIsAuthenticated(true);
-      setCurrentView('home');
-      localStorage.setItem('currentUser', JSON.stringify(userData));
+     const response = await fetch(
+      'https://hackathonteam1-c3aycbddd4geayh8.canadacentral-01.azurewebsites.net/api/v1/Auth/register',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fullName: name,
+          email,
+          password,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Registration failed');
+    }
+
+    const data = await response.json();
+    // Store token in localStorage
+    localStorage.setItem('sessionToken', data.token);
+
+    // Store user info
+    const userData = {
+      name: `${data.firstName} ${data.lastName}`,
+      email: data.email,
+      firstName: data.firstName,
+      lastName: data.lastName,
+    };
+    setUser(userData);
+    setIsAuthenticated(true);
+    setCurrentView('home');
+    localStorage.setItem('currentUser', JSON.stringify(userData));
     } catch (error) {
       setAuthError('Registration failed. Please try again.');
     } finally {
